@@ -168,6 +168,27 @@ func startGUI(tclPath string) {
 			players.Write(PlayersFile, allplayers)
 			respond("ok", fmt.Sprintf("Successfully fetched %d players.", len(allplayers)))
 
+		case "fetchlateststreamqueue":
+			startggInputs.Token = req.Args[0]
+			startggInputs.Slug = req.Args[1]
+			playerOne, playerTwo, err := startgg.FetchLatestStreamQueue(startggInputs)
+			fmt.Fprintln(stdin, "getstreamqueue__resp")
+			if err != nil {
+				respond("err", fmt.Sprintf("Error: %s", err))
+				break
+			}
+			respond("ok",
+			 "Successfully fetched stream match.",
+			 playerOne.Name,
+			 playerOne.Country,
+			 "0",
+			 playerOne.Team,
+			 playerTwo.Name,
+			 playerTwo.Country,
+			 "0",
+			 playerTwo.Team)
+
+
 		case "clearstartgg":
 			startggInputs = startgg.Inputs{}
 			startggInputs.Write(StartggFile)

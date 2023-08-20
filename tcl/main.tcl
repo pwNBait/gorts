@@ -114,6 +114,7 @@ ttk::button .n.m.buttons.swap -text "⇄ Swap players" -command {
     set scoreboard(p1country) $p2country
     set scoreboard(p2country) $p1country
 }
+ttk::button .n.m.buttons.sggstreamqueue -text "Get Latest from StartGG" -command getstreamqueue
 ttk::label .n.m.status -textvariable mainstatus
 grid .n.m.description -row 0 -column 0 -sticky NESW -pady {0 5}
 grid .n.m.description.lbl -row 0 -column 0 -padx {0 5}
@@ -144,6 +145,7 @@ grid .n.m.buttons.apply -row 0 -column 0
 grid .n.m.buttons.discard -row 0 -column 1
 grid .n.m.buttons.reset -row 0 -column 2
 grid .n.m.buttons.swap -row 0 -column 3
+grid .n.m.buttons.sggstreamqueue -row 0 -column 4
 grid .n.m.status -row 4 -column 0 -columnspan 5 -pady {10 0} -sticky EW
 grid columnconfigure .n.m.players 2 -pad 5
 grid columnconfigure .n.m.buttons 1 -pad 15
@@ -347,6 +349,41 @@ proc clearstartgg {} {
     set ::startgg(slug) ""
     set ::startgg(msg) ""
     ipc_write "clearstartgg"
+}
+proc getstreamqueue {} {
+    if {$::startgg(token) == "" || $::startgg(slug) == ""} {
+        set ::startgg(msg) "Please enter token & slug first."
+        return
+    }
+    .n.s.buttons.fetch configure -state disabled
+    .n.s.buttons.clear configure -state disabled
+    .n.s.token configure -state disabled
+    .n.s.tournamentslug configure -state disabled
+    set ::startgg(msg) "Fetching..."
+    ipc_write "fetchlateststreamqueue" $::startgg(token) $::startgg(slug)
+}
+proc getstreamqueue__resp {} {
+    set resp [ipc_read]
+    set status [lindex $resp 0]
+    set msg [lindex $resp 1]
+
+    set ::startgg(msg) $msg
+
+    if {$status == "ok"} {
+        set ::scoreboard(p1name) [lindex $resp 2]
+        set ::scoreboard(p1country) [lindex $resp 3]
+        set ::scoreboard(p1score) [lindex $resp 4]
+        set ::scoreboard(p1team) [lindex $resp 5]
+        set ::scoreboard(p2name) [lindex $resp 6]
+        set ::scoreboard(p2country) [lindex $resp 7]
+        set ::scoreboard(p2score) [lindex $resp 8]
+        set ::scoreboard(p2team) [lindex $resp 9]
+    }
+
+    .n.s.buttons.fetch configure -state normal
+    .n.s.buttons.clear configure -state normal
+    .n.s.token configure -state normal
+    .n.s.tournamentslug configure -state normal
 }
 
 proc discardscoreboard {} {

@@ -165,3 +165,141 @@ func FetchPlayers(i Inputs) ([]players.Player, error) {
 
 	return results, nil
 }
+
+
+type StreamQueueVariables struct {
+	TourneySlug string
+}
+type StreamQueueGraphQL struct {
+	Query     string   `json:"query"`
+	Variables struct {
+		TourneySlug string `json:"tourneySlug"`
+	} `json:"variables"`
+}
+func FetchLatestStreamQueue(i Inputs) (players.Player, players.Player, error) {
+	query := `
+	query StreamQueueOnTournament($tourneySlug: String!) {
+		tournament(slug: $tourneySlug) {
+		  id
+		  streamQueue {
+			stream {
+			  streamSource
+			  streamName
+			}
+			sets {
+			  fullRoundText
+			  slots {
+				entrant {
+				  participants {
+					prefix
+					gamerTag
+					user {
+						location {
+						  country
+						}
+					  } 
+				  }
+				}
+			  }
+			}
+		  }
+		}
+	  }	  
+`
+	body, err := json.Marshal(StreamQueueGraphQL{
+		Query:     query,
+		Variables: struct{TourneySlug string "json:\"tourneySlug\""}{
+			TourneySlug: i.Slug,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", STARTGG_URL, bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("User-Agent", "GORTS/0.5")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+i.Token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return players.Player{}, players.Player{}, fmt.Errorf("Error making API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respdata, err := ioutil.ReadAll(resp.Body)
+	//fmt.Println(">>>>", string(respdata[:50]))
+
+	if resp.StatusCode != http.StatusOK {
+		respJson := struct {
+			Message string `json:"message"`
+		}{}
+		err = json.Unmarshal(respdata, &respJson)
+		if err != nil {
+			return players.Player{}, players.Player{}, fmt.Errorf(
+				"Unexpected %d response: %s", resp.StatusCode, respdata,
+			)
+		}
+		return players.Player{}, players.Player{}, errors.New(respJson.Message)
+	}
+
+	respJson := struct {
+		Data struct {
+			Tournament struct {
+				StreamQueue []struct {
+					Sets []struct {
+						FullRoundText string `json:"fullRoundText"`
+						Slots []struct {
+							Entrant struct {
+								Participants []struct {
+									Prefix string `json:"prefix"`
+									GamerTag string `json:"gamerTag"`
+									User struct {
+										Location struct {
+											Country string `json:"country"`
+										} `json:"location"`
+									} `json:"user"`
+								} `json:"participants"`
+							} `json:"entrant"`
+						} `json:"slots"`
+					} `json:"sets"`
+				} `json:"streamQueue"`
+			} `json:"tournament"`
+		} `json:"data"`
+	}{}
+
+	err = json.Unmarshal(respdata, &respJson)
+	if err != nil {
+		return players.Player{}, players.Player{}, fmt.Errorf(
+			"Unexpected %d response: %s", resp.StatusCode, err.Error(),
+		)
+	}
+
+	if (len(respJson.Data.Tournament.StreamQueue) > 0){
+		playerOne := players.Player{
+			Team: respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[0].Entrant.Participants[0].Prefix,
+			Name: respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[0].Entrant.Participants[0].GamerTag,
+		}
+		playerOneCountry, ok := countryNameToCode[respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[0].Entrant.Participants[0].User.Location.Country]
+		if ok {
+			playerOne.Country = playerOneCountry
+		}
+		
+		playerTwo := players.Player{
+			Team: respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[1].Entrant.Participants[0].Prefix,
+			Name: respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[1].Entrant.Participants[0].GamerTag,
+			Country: respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[1].Entrant.Participants[0].User.Location.Country,
+		}
+		playerTwoCountry, ok := countryNameToCode[respJson.Data.Tournament.StreamQueue[0].Sets[0].Slots[1].Entrant.Participants[0].User.Location.Country]
+		if ok {
+			playerTwo.Country = playerTwoCountry
+		}
+	
+		return playerOne, playerTwo, nil
+	} else {
+		return players.Player{}, players.Player{}, fmt.Errorf("No match found in stream queue")
+	}
+}
