@@ -33,6 +33,10 @@ array set scoreboard {
     p2country ""
     p2score 0
     p2team ""
+    c1title ""
+    c1subtitle ""
+    c2title ""
+    c2subtitle ""
 }
 
 # $applied_scoreboard represents data that has actually been applied
@@ -53,6 +57,10 @@ array set var_to_widget {
     p2country .n.m.players.p2country
     p2score .n.m.players.p2score
     p2team .n.m.players.p2team
+    c1title .n.l.c1title.entry
+    c1subtitle .n.l.c1subtitle.entry
+    c2title .n.l.c2title.entry
+    c2subtitle .n.l.c2subtitle.entry
 }
 
 array set startgg {
@@ -66,8 +74,10 @@ array set startgg {
 ttk::notebook .n
 ttk::frame .n.m -padding 5
 ttk::frame .n.s -padding 5
+ttk::frame .n.l -padding 5
 .n add .n.m -text Main
 .n add .n.s -text start.gg
+.n add .n.l -text "Lower Thirds"
 grid .n -column 0 -row 0 -sticky NESW
 
 # Main tab:
@@ -177,6 +187,38 @@ grid columnconfigure .n.s 1 -weight 1
 grid rowconfigure .n.s 1 -pad 5
 grid rowconfigure .n.s 2 -pad 5
 
+# Lower Thirds tab:
+
+ttk::frame .n.l.c1title
+ttk::label .n.l.c1title.lbl -text "Commentary One"
+ttk::entry .n.l.c1title.entry -textvariable scoreboard(c1title)
+ttk::frame .n.l.c1subtitle
+ttk::label .n.l.c1subtitle.lbl -text "Subtitle One"
+ttk::entry .n.l.c1subtitle.entry -textvariable scoreboard(c1subtitle)
+ttk::frame .n.l.c2title
+ttk::label .n.l.c2title.lbl -text "Commentary Two"
+ttk::entry .n.l.c2title.entry -textvariable scoreboard(c2title)
+ttk::frame .n.l.c2subtitle
+ttk::label .n.l.c2subtitle.lbl -text "Subtitle One"
+ttk::entry .n.l.c2subtitle.entry -textvariable scoreboard(c2subtitle)
+
+grid .n.l.c1title -row 0 -column 0 -sticky NESW -pady {0 5}
+grid .n.l.c1title.lbl -row 0 -column 0 -padx {0 5}
+grid .n.l.c1title.entry -row 0 -column 1 -sticky EW
+grid columnconfigure .n.l.c1title 1 -weight 1
+grid .n.l.c1subtitle -row 1 -column 0 -sticky NESW -pady {0 5}
+grid .n.l.c1subtitle.lbl -row 1 -column 0 -padx {0 5}
+grid .n.l.c1subtitle.entry -row 1 -column 1 -sticky EW
+grid .n.l.c2title -row 0 -column 2 -sticky NESW -pady {0 5}
+grid .n.l.c2title.lbl -row 0 -column 2 -padx {0 5}
+grid .n.l.c2title.entry -row 0 -column 3 -sticky EW
+grid columnconfigure .n.l.c2title 2 -weight 1
+grid .n.l.c2subtitle -row 1 -column 2 -sticky NESW -pady {0 5}
+grid .n.l.c2subtitle.lbl -row 1 -column 2 -padx {0 5}
+grid .n.l.c2subtitle.entry -row 1 -column 3 -sticky EW
+grid rowconfigure .n.l 1 -pad 5
+grid rowconfigure .n.l 2 -pad 5
+
 proc initialize {} {
     loadicon
     loadstartgg
@@ -283,6 +325,10 @@ proc applyscoreboard {} {
         $::scoreboard(p2country) \
         $::scoreboard(p2score) \
         $::scoreboard(p2team) \
+        $::scoreboard(c1title) \
+        $::scoreboard(c1subtitle) \
+        $::scoreboard(c2title) \
+        $::scoreboard(c2subtitle) \
     ]
     update_applied_scoreboard
 }

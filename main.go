@@ -131,6 +131,10 @@ func startGUI(tclPath string) {
 			scoreboard.P2country = req.Args[7]
 			scoreboard.P2score, _ = strconv.Atoi(req.Args[8])
 			scoreboard.P2team = req.Args[9]
+			scoreboard.C1Title = req.Args[10]
+			scoreboard.C1Subtitle = req.Args[11]
+			scoreboard.C2Title = req.Args[12]
+			scoreboard.C2Subtitle = req.Args[13]
 			scoreboard.Write()
 			respond()
 
@@ -220,6 +224,10 @@ type Scoreboard struct {
 	P2country   string `json:"p2country"`
 	P2score     int    `json:"p2score"`
 	P2team      string `json:"p2team"`
+	C1Title      string `json:"c1title"`
+	C1Subtitle      string `json:"c1subtitle"`
+	C2Title      string `json:"c2title"`
+	C2Subtitle      string `json:"c2subtitle"`
 }
 
 func initScoreboard() Scoreboard {
