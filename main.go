@@ -315,6 +315,7 @@ type BracketJson struct {
 	Gfp2s string `json:"gfp2s"`
 }
 
+//TODO: Allow arbitrary sizes for phase group
 func WriteBracket(bracket startgg.Bracket) error {
 	//matches := []string{ "ltop82", "ltop81", "lq2", "lq1", "ls", "lf", "ws2", "ws1", "wf", "gf"}
 	if len(bracket) < 10 {

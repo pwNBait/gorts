@@ -440,6 +440,7 @@ proc getstreamqueue__resp {} {
     .n.s.tournamentslug configure -state normal
 }
 
+#TODO: Show bracket on frontend for editing/validation
 proc getbracket {} {
     if {$::startgg(token) == "" || $::startgg(phasegroupid) == ""} {
         set ::startgg(msg) "Please enter token & phase group id first."
