@@ -24,6 +24,7 @@ type GraphQL struct {
 type Inputs struct {
 	Token string
 	Slug  string
+	PhaseGroupId string
 }
 
 func LoadInputs(filepath string) Inputs {
@@ -39,6 +40,8 @@ func LoadInputs(filepath string) Inputs {
 	result.Token = s.Text()
 	s.Scan()
 	result.Slug = s.Text()
+	s.Scan()
+	result.PhaseGroupId = s.Text()
 	return result
 }
 
@@ -302,4 +305,142 @@ func FetchLatestStreamQueue(i Inputs) (players.Player, players.Player, error) {
 	} else {
 		return players.Player{}, players.Player{}, fmt.Errorf("No match found in stream queue")
 	}
+}
+
+type BracketVariables struct {
+	PhaseGroupId string `json:"phaseGroupId"`
+	Page string `json:"page"`
+	PerPage string `json:"perPage"`
+}
+type BracketGraphQL struct {
+	Query     string   `json:"query"`
+	Variables BracketVariables `json:"variables"`
+}
+type Bracket []struct {
+	Round string
+	PlayerOne struct {
+		Name string
+		Score string
+	}
+	PlayerTwo struct {
+		Name string
+		Score string
+	}
+}
+func FetchBracket(i Inputs) (Bracket, error) {
+	query := `
+	query PhaseGroupSets($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
+		phaseGroup(id: $phaseGroupId) {
+		  sets(page: $page, perPage: $perPage, sortType: ROUND) {
+			pageInfo {
+			  total
+			}
+			nodes {
+			  fullRoundText
+			  slots {
+				entrant {
+				  name
+				}
+				standing {
+				  stats {
+					score {
+					  value
+					}
+				  }
+				}
+			  }
+			}
+		  }
+		}
+	  }	  
+`
+	body, err := json.Marshal(BracketGraphQL{
+		Query:     query,
+		Variables: BracketVariables{
+			PhaseGroupId: i.PhaseGroupId,
+			Page: "1",
+			PerPage: "12",
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", STARTGG_URL, bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("User-Agent", "GORTS/0.5")
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+i.Token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return Bracket{}, fmt.Errorf("Error making API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respdata, err := ioutil.ReadAll(resp.Body)
+	//fmt.Println(">>>>", string(respdata[:50]))
+
+	if resp.StatusCode != http.StatusOK {
+		respJson := struct {
+			Message string `json:"message"`
+		}{}
+		err = json.Unmarshal(respdata, &respJson)
+		if err != nil {
+			return Bracket{}, fmt.Errorf(
+				"Unexpected %d response: %s", resp.StatusCode, respdata,
+			)
+		}
+		return Bracket{}, errors.New(respJson.Message)
+	}
+
+	respJson := struct {
+		Data struct {
+			PhaseGroup struct {
+				Sets struct {
+					Nodes []struct {
+						FullRoundText string `json:"fullRoundText"`
+						Slots []struct {
+							Entrant struct {
+								Name string `json:"name"`
+							} `json:"entrant"`
+							Standing struct {
+								Stats struct {
+									Score struct {
+										Value int `json:"value"`
+									} `json:"score"`
+								} `json:"stats"`
+							} `json:"standing"`
+						} `json:"slots"`
+					} `json:"nodes"`
+				} `json:"sets"`
+			} `json:"phaseGroup"`
+		} `json:"data"`
+	}{}
+
+	err = json.Unmarshal(respdata, &respJson)
+	if err != nil {
+		return Bracket{}, fmt.Errorf(
+			"Unexpected %d response: %s", resp.StatusCode, err.Error(),
+		)
+	}
+	bracket := Bracket{}
+
+	for i := 0; i< len(respJson.Data.PhaseGroup.Sets.Nodes); i++ {
+		match := respJson.Data.PhaseGroup.Sets.Nodes[i]
+		bracket = append(bracket, struct{Round string; PlayerOne struct{Name string; Score string}; PlayerTwo struct{Name string; Score string}}{
+			Round: match.FullRoundText,
+			PlayerOne: struct{Name string; Score string}{
+				Name: match.Slots[0].Entrant.Name,
+				Score: fmt.Sprintf("%d",match.Slots[0].Standing.Stats.Score.Value),
+			},
+			PlayerTwo: struct{Name string; Score string}{
+				Name: match.Slots[1].Entrant.Name,
+				Score: fmt.Sprintf("%d",match.Slots[1].Standing.Stats.Score.Value),
+			},
+		})
+	}
+	return bracket, nil
 }

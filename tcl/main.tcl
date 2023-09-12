@@ -66,6 +66,7 @@ array set var_to_widget {
 array set startgg {
     token ""
     slug ""
+    phasegroupid ""
     msg ""
 }
 
@@ -170,8 +171,11 @@ ttk::label .n.s.tokenlbl -text "Personal token: "
 ttk::entry .n.s.token -show * -textvariable startgg(token)
 ttk::label .n.s.tournamentlbl -text "Tournament slug: "
 ttk::entry .n.s.tournamentslug -textvariable startgg(slug)
+ttk::label .n.s.phasegrouplbl -text "Phase group id: "
+ttk::entry .n.s.phasegroupid -textvariable startgg(phasegroupid)
 ttk::frame .n.s.buttons
 ttk::button .n.s.buttons.fetch -text "↓ Fetch players" -command fetchplayers
+ttk::button .n.s.buttons.bracket -text "↓ Fetch bracket" -command getbracket
 ttk::button .n.s.buttons.clear -text "✘ Clear" -command clearstartgg
 ttk::label .n.s.msg -textvariable startgg(msg)
 
@@ -179,10 +183,13 @@ grid .n.s.tokenlbl -row 0 -column 0 -sticky W
 grid .n.s.token -row 0 -column 1 -sticky EW
 grid .n.s.tournamentlbl -row 1 -column 0 -sticky W
 grid .n.s.tournamentslug -row 1 -column 1 -sticky EW
-grid .n.s.buttons -row 2 -column 1 -stick WE
+grid .n.s.phasegrouplbl -row 2 -column 0 -sticky W
+grid .n.s.phasegroupid -row 2 -column 1 -sticky EW
+grid .n.s.buttons -row 3 -column 1 -stick WE
 grid .n.s.buttons.fetch -stick W
-grid .n.s.buttons.clear -row 0 -column 1 -stick W -padx 5
-grid .n.s.msg -row 3 -column 1 -stick W
+grid .n.s.buttons.bracket -row 0 -column 1 -stick W -padx 5
+grid .n.s.buttons.clear -row 0 -column 2 -stick W -padx 5
+grid .n.s.msg -row 4 -column 1 -stick W
 grid columnconfigure .n.s 1 -weight 1
 grid rowconfigure .n.s 1 -pad 5
 grid rowconfigure .n.s 2 -pad 5
@@ -283,6 +290,7 @@ proc loadstartgg {} {
     set resp [ipc "getstartgg"]
     set ::startgg(token) [lindex $resp 0]
     set ::startgg(slug) [lindex $resp 1]
+    set ::startgg(phasegroupid) [lindex $resp 2]
 }
 
 proc loadwebmsg {} {
@@ -425,6 +433,31 @@ proc getstreamqueue__resp {} {
         set ::scoreboard(p2score) [lindex $resp 8]
         set ::scoreboard(p2team) [lindex $resp 9]
     }
+
+    .n.s.buttons.fetch configure -state normal
+    .n.s.buttons.clear configure -state normal
+    .n.s.token configure -state normal
+    .n.s.tournamentslug configure -state normal
+}
+
+proc getbracket {} {
+    if {$::startgg(token) == "" || $::startgg(phasegroupid) == ""} {
+        set ::startgg(msg) "Please enter token & phase group id first."
+        return
+    }
+    .n.s.buttons.fetch configure -state disabled
+    .n.s.buttons.clear configure -state disabled
+    .n.s.token configure -state disabled
+    .n.s.tournamentslug configure -state disabled
+    set ::startgg(msg) "Fetching..."
+    ipc_write "fetchbracket" $::startgg(token) $::startgg(phasegroupid)
+}
+proc getbracket__resp {} {
+    set resp [ipc_read]
+    set status [lindex $resp 0]
+    set msg [lindex $resp 1]
+
+    set ::startgg(msg) $msg
 
     .n.s.buttons.fetch configure -state normal
     .n.s.buttons.clear configure -state normal
