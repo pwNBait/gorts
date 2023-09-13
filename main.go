@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	_ "embed"
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -23,6 +24,8 @@ const WebDir = "web"
 const ScoreboardFile = WebDir + "/state.json"
 const BracketFile = WebDir + "/bracket.json"
 const PlayersFile = "players.csv"
+const CharactersFile = "characters.csv"
+const StagesFile = "stages.csv"
 const StartggFile = "creds-startgg"
 
 func main() {
@@ -80,6 +83,8 @@ func startGUI(tclPath string) {
 	allplayers := players.FromFile(PlayersFile)
 	scoreboard := initScoreboard()
 	startggInputs := startgg.LoadInputs(StartggFile)
+	characters := FromCSVFile(CharactersFile)
+	stages := FromCSVFile(StagesFile)
 
 	fmt.Fprintln(stdin, "initialize")
 
@@ -124,18 +129,21 @@ func startGUI(tclPath string) {
 		case "applyscoreboard":
 			scoreboard.Description = req.Args[0]
 			scoreboard.Subtitle = req.Args[1]
-			scoreboard.P1name = req.Args[2]
-			scoreboard.P1country = req.Args[3]
-			scoreboard.P1score, _ = strconv.Atoi(req.Args[4])
-			scoreboard.P1team = req.Args[5]
-			scoreboard.P2name = req.Args[6]
-			scoreboard.P2country = req.Args[7]
-			scoreboard.P2score, _ = strconv.Atoi(req.Args[8])
-			scoreboard.P2team = req.Args[9]
-			scoreboard.C1Title = req.Args[10]
-			scoreboard.C1Subtitle = req.Args[11]
-			scoreboard.C2Title = req.Args[12]
-			scoreboard.C2Subtitle = req.Args[13]
+			scoreboard.Stage = req.Args[2]
+			scoreboard.P1name = req.Args[3]
+			scoreboard.P1country = req.Args[4]
+			scoreboard.P1score, _ = strconv.Atoi(req.Args[5])
+			scoreboard.P1team = req.Args[6]
+			scoreboard.P1character = req.Args[7]
+			scoreboard.P2name = req.Args[8]
+			scoreboard.P2country = req.Args[9]
+			scoreboard.P2score, _ = strconv.Atoi(req.Args[10])
+			scoreboard.P2team = req.Args[11]
+			scoreboard.P2character = req.Args[12]
+			scoreboard.C1Title = req.Args[13]
+			scoreboard.C1Subtitle = req.Args[14]
+			scoreboard.C2Title = req.Args[15]
+			scoreboard.C2Subtitle = req.Args[16]
 			scoreboard.Write()
 			respond()
 
@@ -157,7 +165,21 @@ func startGUI(tclPath string) {
 				}
 			}
 			respond(names...)
+		case "loadcharacters":
+			var result []string
+			for _, p := range characters {
+				result = append(result, p)
+			}
+			respond(result...)
+			break
 
+		case "loadstages":
+			var result []string
+			for _, p := range stages {
+				result = append(result, p)
+			}
+			respond(result...)
+			break
 		case "fetchplayers":
 			startggInputs.Token = req.Args[0]
 			startggInputs.Slug = req.Args[1]
@@ -233,14 +255,17 @@ func startGUI(tclPath string) {
 type Scoreboard struct {
 	Description string `json:"description"`
 	Subtitle    string `json:"subtitle"`
+	Stage    string `json:"stage"`
 	P1name      string `json:"p1name"`
 	P1country   string `json:"p1country"`
 	P1score     int    `json:"p1score"`
 	P1team      string `json:"p1team"`
+	P1character      string `json:"p1character"`
 	P2name      string `json:"p2name"`
 	P2country   string `json:"p2country"`
 	P2score     int    `json:"p2score"`
 	P2team      string `json:"p2team"`
+	P2character      string `json:"p2character"`
 	C1Title      string `json:"c1title"`
 	C1Subtitle      string `json:"c1subtitle"`
 	C2Title      string `json:"c2title"`
@@ -373,4 +398,29 @@ func WriteBracket(bracket startgg.Bracket) error {
 		panic(err)
 	}
 	return nil
+}
+
+func FromCSVFile(filepath string) []string {
+	result := make([]string, 0)
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		return result
+	}
+	defer f.Close()
+
+	reader := csv.NewReader(f)
+	reader.FieldsPerRecord = 1
+	records, err := reader.ReadAll()
+	// TODO: should probably return error so GUI can show an error message
+	// instead of crashing.
+	if err != nil {
+		log.Fatalf("csv parse error for %s: %s", filepath, err)
+	}
+
+	for _, record := range records {
+		result = append(result, record[0])
+	}
+
+	return result
 }

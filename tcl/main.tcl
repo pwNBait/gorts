@@ -25,18 +25,22 @@ wm protocol . WM_DELETE_WINDOW {
 array set scoreboard {
     description ""
     subtitle ""
+    stage ""
     p1name ""
     p1country ""
     p1score 0
     p1team ""
+    p1character ""
     p2name ""
     p2country ""
     p2score 0
     p2team ""
+    p2character ""
     c1title ""
     c1subtitle ""
     c2title ""
     c2subtitle ""
+    p1team ""
 }
 
 # $applied_scoreboard represents data that has actually been applied
@@ -49,14 +53,17 @@ foreach key [array names scoreboard] {
 array set var_to_widget {
     description .n.m.description.entry
     subtitle .n.m.subtitle.entry
+    stage .n.m.stage.entry
     p1name .n.m.players.p1name
     p1country .n.m.players.p1country
     p1score .n.m.players.p1score
     p1team .n.m.players.p1team
+    p1character .n.m.players.p1character
     p2name .n.m.players.p2name
     p2country .n.m.players.p2country
     p2score .n.m.players.p2score
     p2team .n.m.players.p2team
+    p2character .n.m.players.p2character
     c1title .n.l.c1title.entry
     c1subtitle .n.l.c1subtitle.entry
     c2title .n.l.c2title.entry
@@ -96,7 +103,8 @@ ttk::combobox .n.m.players.p1country -textvariable scoreboard(p1country) -width 
 ttk::spinbox .n.m.players.p1score -textvariable scoreboard(p1score) -from 0 -to 999 -width 4
 ttk::button .n.m.players.p1win -text "▲ Win" -width 6 -command {incr scoreboard(p1score)}
 ttk::label .n.m.players.p1teamlbl -text "Team 1"
-ttk::combobox .n.m.players.p1team -textvariable scoreboard(p1team)
+ttk::combobox .n.m.players.p1team -textvariable scoreboard(p1team) -width 15
+ttk::combobox .n.m.players.p1character -textvariable scoreboard(p1character) -width 15
 ttk::separator .n.m.players.separator -orient horizontal
 ttk::label .n.m.players.p2lbl -text "Player 2"
 ttk::combobox .n.m.players.p2name -textvariable scoreboard(p2name) -width 35
@@ -104,7 +112,11 @@ ttk::combobox .n.m.players.p2country -textvariable scoreboard(p2country) -width 
 ttk::spinbox .n.m.players.p2score -textvariable scoreboard(p2score) -from 0 -to 999 -width 4
 ttk::button .n.m.players.p2win -text "▲ Win" -width 6 -command {incr scoreboard(p2score)}
 ttk::label .n.m.players.p2teamlbl -text "Team 2"
-ttk::combobox .n.m.players.p2team -textvariable scoreboard(p2team)
+ttk::combobox .n.m.players.p2team -textvariable scoreboard(p2team) -width 15
+ttk::combobox .n.m.players.p2character -textvariable scoreboard(p2character) -width 15
+ttk::frame .n.m.stage
+ttk::label .n.m.stage.lbl -text "Stage"
+ttk::combobox .n.m.stage.entry -textvariable scoreboard(stage) -width 35
 ttk::frame .n.m.buttons
 ttk::button .n.m.buttons.apply -text "▶ Apply" -command applyscoreboard
 ttk::button .n.m.buttons.discard -text "✖ Discard" -command discardscoreboard
@@ -142,7 +154,8 @@ grid .n.m.players.p1country -row 0 -column 2
 grid .n.m.players.p1score -row 0 -column 3
 grid .n.m.players.p1win -row 0 -column 4 -padx {5 0} -rowspan 2 -sticky NS
 grid .n.m.players.p1teamlbl -row 1 -column 0
-grid .n.m.players.p1team -row 1 -column 1 -columnspan 3 -sticky EW
+grid .n.m.players.p1team -row 1 -column 1 -sticky EW
+grid .n.m.players.p1character -row 1 -column 2 -columnspan 2 -sticky EW
 grid .n.m.players.separator -row 2 -column 0 -columnspan 5 -pady 10 -sticky EW
 grid .n.m.players.p2lbl -row 3 -column 0
 grid .n.m.players.p2name -row 3 -column 1
@@ -150,14 +163,19 @@ grid .n.m.players.p2country -row 3 -column 2
 grid .n.m.players.p2score -row 3 -column 3
 grid .n.m.players.p2win -row 3 -column 4 -padx {5 0} -rowspan 2 -sticky NS
 grid .n.m.players.p2teamlbl -row 4 -column 0
-grid .n.m.players.p2team -row 4 -column 1 -columnspan 3 -sticky EW
-grid .n.m.buttons -row 3 -column 0 -sticky W -pady {10 0}
+grid .n.m.players.p2team -row 4 -column 1 -sticky EW
+grid .n.m.players.p2character -row 4 -column 2 -columnspan 2 -sticky EW
+grid .n.m.stage -row 3 -column 0 -sticky NESW -pady {10 5}
+grid .n.m.stage.lbl -row 0 -column 0 -padx {0 5}
+grid .n.m.stage.entry -row 0 -column 1 -sticky NW
+grid columnconfigure .n.m.stage 1 -weight 1
+grid .n.m.buttons -row 4 -column 0 -sticky W -pady {10 0}
 grid .n.m.buttons.apply -row 0 -column 0
 grid .n.m.buttons.discard -row 0 -column 1
 grid .n.m.buttons.reset -row 0 -column 2
 grid .n.m.buttons.swap -row 0 -column 3
 grid .n.m.buttons.sggstreamqueue -row 0 -column 4
-grid .n.m.status -row 4 -column 0 -columnspan 5 -pady {10 0} -sticky EW
+grid .n.m.status -row 5 -column 0 -columnspan 5 -pady {10 0} -sticky EW
 grid columnconfigure .n.m.players 2 -pad 5
 grid columnconfigure .n.m.buttons 1 -pad 15
 grid columnconfigure .n.m.buttons 3 -pad 15
@@ -236,6 +254,8 @@ proc initialize {} {
 
     setupdiffcheck
     setupplayersuggestion
+    setupcharacters
+    setupstages
 
 
     # By default this window is not focused and not even brought to
@@ -325,14 +345,17 @@ proc applyscoreboard {} {
         ipc "applyscoreboard" \
         $::scoreboard(description) \
         $::scoreboard(subtitle) \
+        $::scoreboard(stage) \
         $::scoreboard(p1name) \
         $::scoreboard(p1country) \
         $::scoreboard(p1score) \
         $::scoreboard(p1team) \
+        $::scoreboard(p1character) \
         $::scoreboard(p2name) \
         $::scoreboard(p2country) \
         $::scoreboard(p2score) \
         $::scoreboard(p2team) \
+        $::scoreboard(p2character) \
         $::scoreboard(c1title) \
         $::scoreboard(c1subtitle) \
         $::scoreboard(c2title) \
@@ -365,7 +388,18 @@ proc setupplayersuggestion {} {
     }
     trace add variable ::scoreboard write update_suggestions
 }
-
+proc setupcharacters {} {
+    set widgetOne .n.m.players.p1character
+    set widgetTwo .n.m.players.p2character
+    set characters [ipc "loadcharacters"]
+    $widgetOne configure -values $characters
+    $widgetTwo configure -values $characters
+}
+proc setupstages {} {
+    set widget .n.m.stage.entry
+    set stages [ipc "loadstages"]
+    $widget configure -values $stages
+}
 proc fetchplayers {} {
     if {$::startgg(token) == "" || $::startgg(slug) == ""} {
         set ::startgg(msg) "Please enter token & slug first."
